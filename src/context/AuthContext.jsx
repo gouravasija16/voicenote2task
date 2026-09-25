@@ -45,8 +45,8 @@ export function AuthProvider({ children }) {
     } catch (e) {
       console.warn('Failed reading auth state from localStorage', e);
     }
-    // Default to Alex Morgan
-    return DEMO_USERS[0];
+    // Default: not authenticated — user must log in
+    return null;
   });
 
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);

@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   SparklesIcon,
   MicIcon,
@@ -23,16 +23,26 @@ import {
   getNoteHistory
 } from '../utils/storage';
 import { useAuth } from '../context/AuthContext';
+import { ParseLoader } from '../components/Loader';
 import heroIllustration from '../assets/hero_illustration.jpg';
 
 export default function Home({ onToast }) {
   const navigate = useNavigate();
+  const location = useLocation();
   const { user, isAuthenticated, openAuthModal } = useAuth();
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [history, setHistory] = useState([]);
   const [showHistory, setShowHistory] = useState(false);
+  const [isParsing, setIsParsing] = useState(false);
   const recognitionRef = useRef(null);
+
+  // If redirected here from a protected route, auto-open auth modal
+  useEffect(() => {
+    if (location.state?.requiresAuth && !isAuthenticated) {
+      openAuthModal('signin');
+    }
+  }, [location.state, isAuthenticated, openAuthModal]);
 
   // Load previous text if any
   useEffect(() => {
@@ -120,11 +130,18 @@ export default function Home({ onToast }) {
     if (onToast) onToast(`Loaded "${sample.title}"`);
   };
 
-  // Submit & Parse
-  const handleOrganize = (e) => {
+  // Submit & Parse — action form handler
+  const handleOrganize = async (e) => {
     e.preventDefault();
     if (!inputText.trim()) {
       if (onToast) onToast('Please enter or speak some thoughts first!');
+      return;
+    }
+
+    // Require login before accessing /tasks
+    if (!isAuthenticated) {
+      if (onToast) onToast('Please sign in to organize and save your tasks 🔐');
+      openAuthModal('signin');
       return;
     }
 
@@ -138,6 +155,12 @@ export default function Home({ onToast }) {
       setIsRecording(false);
     }
 
+    // Show loader
+    setIsParsing(true);
+
+    // Simulate a brief processing delay so the loader is visible
+    await new Promise((r) => setTimeout(r, 700));
+
     // Run pure client-side pattern matching NLP
     const result = parseVoiceNote(inputText);
 
@@ -145,6 +168,8 @@ export default function Home({ onToast }) {
     saveStoredRawText(inputText);
     saveStoredTasks(result.tasks);
     saveToHistory(inputText, result.tasks);
+
+    setIsParsing(false);
 
     // Navigate to /tasks with results in state
     navigate('/tasks', {
@@ -180,6 +205,9 @@ export default function Home({ onToast }) {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '2.5rem' }}>
+      {/* Parse Loading Overlay */}
+      {isParsing && <ParseLoader message="Organising your voice note…" />}
+
       {/* Top Hero Section with Illustration */}
       <section className="hero-section">
         <div className="hero-grid">
@@ -452,11 +480,34 @@ export default function Home({ onToast }) {
               type="submit"
               id="organize-tasks-btn"
               className="btn btn-primary btn-lg"
-              style={{ width: '100%', maxWidth: '320px', gap: '0.75rem' }}
+              disabled={isParsing}
+              style={{
+                width: '100%',
+                maxWidth: '320px',
+                gap: '0.75rem',
+                opacity: isParsing ? 0.75 : 1,
+                position: 'relative',
+                overflow: 'hidden'
+              }}
             >
-              <SparklesIcon size={18} />
-              <span>Organize Tasks</span>
-              <ArrowRightIcon size={16} />
+              {isParsing ? (
+                <>
+                  <span style={{ animation: 'spin 0.75s linear infinite', display: 'inline-block' }}>⚙️</span>
+                  <span>Organising…</span>
+                </>
+              ) : !isAuthenticated ? (
+                <>
+                  <span>🔐</span>
+                  <span>Sign In to Organise</span>
+                  <ArrowRightIcon size={16} />
+                </>
+              ) : (
+                <>
+                  <SparklesIcon size={18} />
+                  <span>Organise Tasks</span>
+                  <ArrowRightIcon size={16} />
+                </>
+              )}
             </button>
           </div>
         </form>

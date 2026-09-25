@@ -4,6 +4,7 @@ import Navbar from './components/Navbar';
 import Home from './pages/Home';
 import Tasks from './pages/Tasks';
 import AuthModal from './components/AuthModal';
+import ProtectedRoute from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { CheckIcon } from './components/Icons';
 
@@ -33,7 +34,14 @@ export default function App() {
           <main className="main-content">
             <Routes>
               <Route path="/" element={<Home onToast={showToast} />} />
-              <Route path="/tasks" element={<Tasks onToast={showToast} />} />
+              <Route
+                path="/tasks"
+                element={
+                  <ProtectedRoute>
+                    <Tasks onToast={showToast} />
+                  </ProtectedRoute>
+                }
+              />
               <Route path="*" element={<Navigate to="/" replace />} />
             </Routes>
           </main>

@@ -4,6 +4,7 @@ import TaskCard from '../components/TaskCard';
 import TaskStats from '../components/TaskStats';
 import TaskEditModal from '../components/TaskEditModal';
 import ExportModal from '../components/ExportModal';
+import { TaskSkeletonCard, TaskStatsSkeleton } from '../components/Loader';
 import {
   ArrowLeftIcon,
   PlusIcon,
@@ -46,6 +47,13 @@ export default function Tasks({ onToast }) {
   const [priorityFilter, setPriorityFilter] = useState('all'); // 'all' | 'high' | 'normal'
   const [categoryFilter, setCategoryFilter] = useState('all');
   const [sortBy, setSortBy] = useState('default'); // 'default' | 'urgent' | 'due' | 'alpha'
+
+  // Loading skeleton — show for a brief moment on initial mount
+  const [isLoading, setIsLoading] = useState(true);
+  useEffect(() => {
+    const t = setTimeout(() => setIsLoading(false), 600);
+    return () => clearTimeout(t);
+  }, []);
 
   // Persist tasks to localStorage on change
   useEffect(() => {
@@ -265,144 +273,227 @@ export default function Tasks({ onToast }) {
       {/* Filter, Search & Controls Bar */}
       {tasks.length > 0 && (
         <div
-          className="glass-card"
+          className="glass-card filter-bar-card"
           style={{
-            padding: '1rem 1.25rem',
+            padding: '1.25rem 1.5rem',
             display: 'flex',
             flexDirection: 'column',
-            gap: '0.85rem'
+            gap: '1rem'
           }}
         >
-          {/* Top row: Search input + Status Tabs + Sort Dropdown */}
+          {/* Row 1: Search + Sort */}
           <div
             style={{
               display: 'flex',
               flexWrap: 'wrap',
               alignItems: 'center',
-              justifyContent: 'space-between',
               gap: '0.75rem'
             }}
           >
             {/* Search Input */}
-            <div style={{ position: 'relative', flex: '1 1 240px', maxWidth: '380px' }}>
+            <div style={{ position: 'relative', flex: '1 1 220px', maxWidth: '360px' }}>
               <SearchIcon
                 size={15}
                 style={{
                   position: 'absolute',
-                  left: '0.8rem',
+                  left: '0.85rem',
                   top: '50%',
                   transform: 'translateY(-50%)',
-                  color: 'var(--text-muted)'
+                  color: 'var(--text-muted)',
+                  pointerEvents: 'none'
                 }}
               />
               <input
                 type="text"
                 id="search-tasks-input"
                 className="custom-input"
-                style={{ paddingLeft: '2.3rem' }}
-                placeholder="Search tasks, categories, words..."
+                style={{ paddingLeft: '2.4rem', fontSize: '0.88rem' }}
+                placeholder="Search tasks, categories, dates…"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
               />
+              {searchQuery && (
+                <button
+                  type="button"
+                  onClick={() => setSearchQuery('')}
+                  style={{
+                    position: 'absolute',
+                    right: '0.7rem',
+                    top: '50%',
+                    transform: 'translateY(-50%)',
+                    background: 'none',
+                    border: 'none',
+                    cursor: 'pointer',
+                    color: 'var(--text-muted)',
+                    fontSize: '1rem',
+                    lineHeight: 1,
+                    padding: '0.2rem'
+                  }}
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
             </div>
 
-            {/* Status Tabs */}
+            {/* Sort Pills */}
+            <div className="filter-pill-group" style={{ marginLeft: 'auto' }}>
+              <span className="filter-pill-label">Sort</span>
+              {[
+                { value: 'default', icon: '⬇️', label: 'Default' },
+                { value: 'urgent', icon: '🔥', label: 'Urgent' },
+                { value: 'due', icon: '📅', label: 'Due Date' },
+                { value: 'alpha', icon: '🔤', label: 'A–Z' }
+              ].map((s) => (
+                <button
+                  key={s.value}
+                  type="button"
+                  id={`sort-${s.value}`}
+                  className={`filter-pill ${sortBy === s.value ? 'filter-pill--active' : ''}`}
+                  onClick={() => setSortBy(s.value)}
+                >
+                  <span>{s.icon}</span>
+                  <span>{s.label}</span>
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Row 2: Status + Priority filter pills */}
+          <div
+            style={{
+              display: 'flex',
+              flexWrap: 'wrap',
+              alignItems: 'center',
+              gap: '0.5rem'
+            }}
+          >
+            <span className="filter-pill-label">Status</span>
+
+            {[
+              { value: 'all', icon: '🗂️', label: 'All', count: tasks.length },
+              { value: 'pending', icon: '⏳', label: 'Pending', count: tasks.filter((t) => !t.completed).length },
+              { value: 'completed', icon: '✅', label: 'Done', count: tasks.filter((t) => t.completed).length }
+            ].map((s) => (
+              <button
+                key={s.value}
+                type="button"
+                id={`status-filter-${s.value}`}
+                className={`filter-pill ${statusFilter === s.value ? 'filter-pill--active' : ''}`}
+                onClick={() => setStatusFilter(s.value)}
+              >
+                <span>{s.icon}</span>
+                <span>{s.label}</span>
+                <span className={`filter-pill-count ${statusFilter === s.value ? 'filter-pill-count--active' : ''}`}>
+                  {s.count}
+                </span>
+              </button>
+            ))}
+
+            <div className="filter-divider" />
+
+            <span className="filter-pill-label">Priority</span>
+            {[
+              { value: 'all', icon: '🎯', label: 'All' },
+              { value: 'high', icon: '🔥', label: 'Urgent' },
+              { value: 'normal', icon: '🔵', label: 'Normal' }
+            ].map((p) => (
+              <button
+                key={p.value}
+                type="button"
+                id={`priority-filter-${p.value}`}
+                className={`filter-pill ${priorityFilter === p.value ? 'filter-pill--active' : ''}`}
+                onClick={() => setPriorityFilter(p.value)}
+              >
+                <span>{p.icon}</span>
+                <span>{p.label}</span>
+              </button>
+            ))}
+          </div>
+
+          {/* Row 3: Category Chips */}
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.6rem' }}>
+              <span className="filter-pill-label">Category</span>
+              {categoryFilter !== 'all' && (
+                <button
+                  type="button"
+                  className="filter-pill filter-pill--clear"
+                  onClick={() => setCategoryFilter('all')}
+                >
+                  ✕ Clear
+                </button>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '0.5rem' }}>
+              <button
+                type="button"
+                className={`category-chip-v2 ${categoryFilter === 'all' ? 'category-chip-v2--active' : ''}`}
+                onClick={() => setCategoryFilter('all')}
+              >
+                <span className="cat-chip-icon">🗂️</span>
+                <span>All</span>
+                <span className="cat-chip-count">{tasks.length}</span>
+              </button>
+              {Object.entries(CATEGORY_DEFINITIONS).map(([key, def]) => {
+                const count = tasks.filter((t) => t.category === key).length;
+                if (count === 0 && categoryFilter !== key) return null;
+                return (
+                  <button
+                    key={key}
+                    type="button"
+                    className={`category-chip-v2 ${categoryFilter === key ? 'category-chip-v2--active' : ''}`}
+                    onClick={() => setCategoryFilter(categoryFilter === key ? 'all' : key)}
+                  >
+                    <span className="cat-chip-icon">{def.label.split(' ')[0]}</span>
+                    <span>{def.label.split(' ').slice(1).join(' ') || def.label}</span>
+                    <span className="cat-chip-count">{count}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Active filters summary */}
+          {(searchQuery || statusFilter !== 'all' || priorityFilter !== 'all' || categoryFilter !== 'all') && (
             <div
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: '0.25rem',
-                background: 'rgba(0, 0, 0, 0.25)',
-                padding: '0.25rem',
-                borderRadius: 'var(--radius-md)'
+                justifyContent: 'space-between',
+                paddingTop: '0.75rem',
+                borderTop: '1px solid var(--border-subtle)',
+                fontSize: '0.8rem',
+                color: 'var(--text-muted)'
               }}
             >
+              <span>
+                Showing <strong style={{ color: 'var(--text-primary)' }}>{sortedTasks.length}</strong> of {tasks.length} tasks
+              </span>
               <button
                 type="button"
-                className={`btn btn-sm ${statusFilter === 'all' ? 'btn-primary' : 'btn-outline'}`}
-                style={{ border: 'none', padding: '0.35rem 0.75rem' }}
-                onClick={() => setStatusFilter('all')}
+                className="filter-pill filter-pill--clear"
+                onClick={() => {
+                  setSearchQuery('');
+                  setStatusFilter('all');
+                  setPriorityFilter('all');
+                  setCategoryFilter('all');
+                }}
               >
-                All ({tasks.length})
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${statusFilter === 'pending' ? 'btn-primary' : 'btn-outline'}`}
-                style={{ border: 'none', padding: '0.35rem 0.75rem' }}
-                onClick={() => setStatusFilter('pending')}
-              >
-                Pending ({tasks.filter((t) => !t.completed).length})
-              </button>
-              <button
-                type="button"
-                className={`btn btn-sm ${statusFilter === 'completed' ? 'btn-primary' : 'btn-outline'}`}
-                style={{ border: 'none', padding: '0.35rem 0.75rem' }}
-                onClick={() => setStatusFilter('completed')}
-              >
-                Completed ({tasks.filter((t) => t.completed).length})
+                <RefreshCwIcon size={12} />
+                Reset all filters
               </button>
             </div>
-
-            {/* Sort & Priority dropdown */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-              <select
-                id="filter-priority-select"
-                className="custom-input"
-                style={{ width: 'auto', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
-                value={priorityFilter}
-                onChange={(e) => setPriorityFilter(e.target.value)}
-              >
-                <option value="all">All Priorities</option>
-                <option value="high">🔥 Urgent Only</option>
-                <option value="normal">Normal Priority</option>
-              </select>
-
-              <select
-                id="sort-tasks-select"
-                className="custom-input"
-                style={{ width: 'auto', padding: '0.45rem 0.75rem', fontSize: '0.85rem' }}
-                value={sortBy}
-                onChange={(e) => setSortBy(e.target.value)}
-              >
-                <option value="default">Sort: Default</option>
-                <option value="urgent">Sort: Urgent First</option>
-                <option value="due">Sort: Earliest Due Date</option>
-                <option value="alpha">Sort: Alphabetical (A-Z)</option>
-              </select>
-            </div>
-          </div>
-
-          {/* Bottom row: Category filter chips */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', flexWrap: 'wrap' }}>
-            <span style={{ fontSize: '0.8rem', color: 'var(--text-muted)' }}>Category:</span>
-            <button
-              type="button"
-              className={`category-chip ${categoryFilter === 'all' ? 'active' : ''}`}
-              onClick={() => setCategoryFilter('all')}
-            >
-              All
-            </button>
-            {Object.entries(CATEGORY_DEFINITIONS).map(([key, def]) => {
-              const count = tasks.filter((t) => t.category === key).length;
-              if (count === 0 && categoryFilter !== key) return null;
-              return (
-                <button
-                  key={key}
-                  type="button"
-                  className={`category-chip ${categoryFilter === key ? 'active' : ''}`}
-                  onClick={() => setCategoryFilter(categoryFilter === key ? 'all' : key)}
-                >
-                  <span>{def.label}</span>
-                  <span style={{ opacity: 0.75, fontSize: '0.7rem' }}>({count})</span>
-                </button>
-              );
-            })}
-          </div>
+          )}
         </div>
       )}
 
       {/* Task List Render */}
-      {sortedTasks.length > 0 ? (
+      {isLoading ? (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
+          {[1, 2, 3].map((i) => <TaskSkeletonCard key={i} />)}
+        </div>
+      ) : sortedTasks.length > 0 ? (
         <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
           {sortedTasks.map((task) => (
             <TaskCard
