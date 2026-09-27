@@ -330,7 +330,7 @@ export function extractDueDate(text, baseDate = new Date()) {
   }
 
   // Pattern 5: Days of the week (e.g. "next Tuesday at 3pm", "on Friday", "by Monday")
-  const dayMatch = /\b(?:(?:by|on|this|next|coming)\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+(?:morning|afternoon|evening|night|at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?))?\b/i.exec(lower);
+  const dayMatch = /\b(?:(?:by|before|on|this|next|coming)\s+)?(monday|tuesday|wednesday|thursday|friday|saturday|sunday)(?:\s+(?:morning|afternoon|evening|night|at\s+(\d{1,2})(?::(\d{2}))?\s*(am|pm)?))?\b/i.exec(lower);
   if (dayMatch) {
     const targetDayName = dayMatch[1].toLowerCase();
     const targetDayIndex = daysOfWeek.indexOf(targetDayName);
@@ -569,34 +569,30 @@ export function splitIntoCandidateThoughts(rawText) {
     .replace(/\r\n/g, '\n')
     .replace(/\r/g, '\n')
     .replace(/\t/g, ' ')
+    .replace(/\s+\n\s+/g, ' ')
     .trim();
-
-  const spokenTransitions = [
-    'and also', 'and then', 'oh and', 'oh yeah and', 'plus',
-    'another thing is', 'next thing is', 'on top of that',
-    'and don\'t forget to', 'and remember to', 'and make sure to',
-    'and remind me to', 'also don\'t forget', 'also remember',
-    'also make sure', 'wait,', 'secondly,', 'thirdly,', 'finally,'
-  ];
 
   const SPLIT_TOKEN = '___SPLIT_HERE___';
   let processed = text;
 
-  // Split on strong sentence punctuation
+  // Split on strong sentence punctuation and line breaks.
   processed = processed.replace(/([.?!;]+)(\s+)/g, `$1${SPLIT_TOKEN}`);
-  // Split on newlines
   processed = processed.replace(/\n+/g, SPLIT_TOKEN);
 
-  // Split on spoken conjunctions
-  for (const trans of spokenTransitions) {
-    const regex = new RegExp(`(\\s+)(?:${escapeRegExp(trans)})(\\s+)`, 'gi');
-    processed = processed.replace(regex, `${SPLIT_TOKEN}$2`);
-  }
+  // Split on spoken transitions when they introduce a new action item.
+  const taskStartPattern = /(?:^|\s)(?:and|also|plus|then|oh\s+and|oh\s+yeah\s+and|another\s+thing\s+is|next\s+thing\s+is|on\s+top\s+of\s+that|and\s+don\'t\s+forget\s+to|and\s+remember\s+to|and\s+make\s+sure\s+to|also\s+don\'t\s+forget\s+to|also\s+remember\s+to|also\s+make\s+sure\s+to|wait\s*,?)\s+(?=(?:urgent|critical|high\s+priority|i\s+(?:really\s+)?(?:need|have|got|gotta|must|should)|we\s+(?:really\s+)?(?:need|have|got|gotta|must|should)|you\s+(?:can|could|would|should)|please\s+|don\'t\s+forget\s+to|remember\s+to|make\s+sure\s+to|call\b|email\b|text\b|message\b|ping\b|reply\b|follow\s+up\b|buy\b|purchase\b|order\b|book\b|schedule\b|fix\b|repair\b|patch\b|resolve\b|solve\b|tackle\b|review\b|check\b|verify\b|update\b|send\b|write\b|draft\b|create\b|build\b|submit\b|pay\b|wire\b|transfer\b|read\b|research\b|investigate\b|clean\b|pick\s+up\b|grab\b|return\b|renew\b|cancel\b|reschedule\b|talk\b|chat\b|meet\b|visit\b))\b/gi;
+  processed = processed.replace(taskStartPattern, `${SPLIT_TOKEN} `);
+
+  // Split on list/transition punctuation.
+  processed = processed.replace(/\s*[,;]\s*(?=(?:and|also|plus|then|next|finally|wait)\b)/gi, `${SPLIT_TOKEN} `);
 
   const rawCandidates = processed
     .split(SPLIT_TOKEN)
-    .map(s => s.trim())
-    .filter(s => s.length > 0);
+    .map((segment) => segment
+      .replace(/^\s*(?:and|also|plus|oh\s+yeah|oh\s+and|then|finally)\s+/i, '')
+      .replace(/\s+/g, ' ')
+      .trim())
+    .filter((segment) => segment.length > 0);
 
   return rawCandidates;
 }
@@ -607,54 +603,45 @@ export function splitIntoCandidateThoughts(rawText) {
 export function cleanTaskTitle(sentence, dueDateMatch) {
   let cleaned = sentence;
 
-  // 1. Strip leading meta-commentary (e.g., "Let me quickly jot down what I need to do")
   cleaned = cleaned.replace(META_COMMENTARY_REGEX, '').trim();
-
-  // 2. Strip leading punctuation / dashes / bullets
   cleaned = cleaned.replace(/^[\s\-–—*•,.]+/, '').trim();
 
-  // 3. Strip conversational narrative preamble before action verbs
-  // e.g. "I was just walking back from lunch and I realized I really need to call Sarah"
-  // -> "Call Sarah"
   const preambleMatch = /^(?:.*?\b(?:realized|thought|decided|figured)\s+(?:that\s+)?)(?:i\s+(?:really\s+)?(?:need|have|got|gotta)\s+to\s+)/i.exec(cleaned);
   if (preambleMatch) {
     cleaned = cleaned.slice(preambleMatch[0].length).trim();
   }
 
-  // 4. Strip filler prefixes
   cleaned = cleaned.replace(FILLER_PREFIX_REGEX, '').trim();
 
-  // 5. Strip action trigger prefixes (e.g. "I really need to ", "don't forget to ")
   for (const prefix of ACTION_PREFIXES) {
     if (prefix.regex.test(cleaned)) {
       cleaned = cleaned.replace(prefix.regex, prefix.replacement).trim();
     }
   }
 
-  // Repeat filler check that might have been revealed
   cleaned = cleaned.replace(FILLER_PREFIX_REGEX, '').trim();
 
-  // 6. Strip urgency words from title to avoid redundancy (displayed as badges)
   for (const urg of URGENCY_PATTERNS) {
     cleaned = cleaned.replace(urg.regex, '').trim();
   }
 
-  // 7. Strip due date match from title to keep title clean
   if (dueDateMatch?.rawMatch) {
-    const dateRegex = new RegExp(`\\b(?:by|on|at|before|for)?\\s*${escapeRegExp(dueDateMatch.rawMatch)}\\b`, 'gi');
+    const dateRegex = new RegExp(`\\b(?:by|on|at|before|for|in)?\\s*${escapeRegExp(dueDateMatch.rawMatch)}\\b`, 'gi');
     cleaned = cleaned.replace(dateRegex, '').trim();
   }
 
-  // 8. Clean up dangling conjunctions, duplicate commas, and trailing punctuation
   cleaned = cleaned
+    .replace(/^(?:that\s+)?(?:there\s+is\s+)?/i, '')
+    .replace(/^(?:i\s+)?(?:really\s+)?(?:need|have|got|gotta|must|should)\s+/i, '')
+    .replace(/^(?:we\s+)?(?:really\s+)?(?:need|have|got|gotta|must|should)\s+/i, '')
     .replace(/^[\s,;:\-–—]+/, '')
+    .replace(/\b(?:also|and|plus|then|finally)\b\s*[,;]?\s*/gi, '')
     .replace(/,\s*,/g, ',')
     .replace(/\s{2,}/g, ' ')
     .replace(/\s*,\s*$/, '')
     .replace(/[.?!;]+$/, '')
     .trim();
 
-  // 9. Capitalize first letter
   if (cleaned.length > 0) {
     cleaned = cleaned.charAt(0).toUpperCase() + cleaned.slice(1);
   }
@@ -695,12 +682,21 @@ export function isActionableTask(sentence) {
     if (nonTask.test(lower)) return false;
   }
 
-  // Action intent indicator 1: Contains modal/action prefixes
-  for (const prefix of ACTION_PREFIXES) {
-    if (prefix.regex.test(sentence)) return true;
+  const trimmed = sentence.trim();
+
+  if (/^(?:that\s+)?(?:there\s+is\s+)?(?:an\s+)?(?:urgent|critical|high\s+priority|time[-\s]sensitive|blocking|important)\b/i.test(trimmed)) {
+    return false;
   }
 
-  // Action intent indicator 2: Contains action verb
+  for (const prefix of ACTION_PREFIXES) {
+    if (prefix.regex.test(trimmed)) return true;
+  }
+
+  const imperativeVerbPattern = /\b(?:call|email|text|message|reply|follow\s+up|buy|purchase|order|pay|wire|transfer|schedule|book|fix|repair|patch|resolve|solve|tackle|review|check|verify|update|write|draft|prepare|submit|send|create|build|read|research|investigate|clean|pick\s+up|grab|return|renew|cancel|reschedule|talk|chat|meet|schedule|visit|plan|organize|test|deploy|merge|review|audit)\b/i;
+  if (imperativeVerbPattern.test(lower)) {
+    return true;
+  }
+
   for (const verb of ACTION_VERBS) {
     const verbRegex = new RegExp(`\\b${escapeRegExp(verb)}\\b`, 'i');
     if (verbRegex.test(lower)) {
@@ -708,8 +704,9 @@ export function isActionableTask(sentence) {
     }
   }
 
-  // Action intent indicator 3: Has due date or urgency combined with a subject
   if (extractDueDate(sentence) !== null && lower.split(/\s+/).length >= 3) return true;
+
+  return false;if (extractDueDate(sentence) !== null && lower.split(/\s+/).length >= 3) return true;
 
   return false;
 }

@@ -33,9 +33,10 @@ export default function Home({ onToast }) {
   const [inputText, setInputText] = useState('');
   const [isRecording, setIsRecording] = useState(false);
   const [history, setHistory] = useState([]);
-  const [showHistory, setShowHistory] = useState(false);
+  const [showHistory,setShowHistory]=useState(false)
   const [isParsing, setIsParsing] = useState(false);
   const recognitionRef = useRef(null);
+  const lastSpeechChunkRef = useRef('');
 
   // If redirected here from a protected route, auto-open auth modal
   useEffect(() => {
@@ -63,22 +64,36 @@ export default function Home({ onToast }) {
       recognition.onresult = (event) => {
         let transcript = '';
         for (let i = event.resultIndex; i < event.results.length; i++) {
-          transcript += event.results[i][0].transcript;
+          const resultText = event.results[i][0]?.transcript?.trim();
+          if (!resultText) continue;
+          transcript += (transcript ? ' ' : '') + resultText;
         }
+
+        if (!transcript) return;
+
+        const normalized = transcript.replace(/\s+/g, ' ').trim();
+        if (!normalized || normalized === lastSpeechChunkRef.current) return;
+
+        lastSpeechChunkRef.current = normalized;
         setInputText((prev) => {
+          const prevTrimmed = prev.trim();
+          if (!prevTrimmed) return normalized;
+          if (prevTrimmed.endsWith(normalized)) return prev;
           const separator = prev && !prev.endsWith(' ') ? ' ' : '';
-          return prev + separator + transcript;
+          return `${prev}${separator}${normalized}`;
         });
       };
 
       recognition.onerror = (event) => {
         console.warn('Speech recognition error:', event.error);
         setIsRecording(false);
+        lastSpeechChunkRef.current = '';
         if (onToast) onToast(`Microphone notice: ${event.error}`);
       };
 
       recognition.onend = () => {
         setIsRecording(false);
+        lastSpeechChunkRef.current = '';
       };
 
       recognitionRef.current = recognition;

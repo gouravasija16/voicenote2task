@@ -8,6 +8,8 @@ import {
   LogInIcon
 } from './Icons';
 
+import './AuthModal.css';
+
 export default function AuthModal({ onToast }) {
   const {
     isAuthModalOpen,
@@ -39,7 +41,6 @@ export default function AuthModal({ onToast }) {
       if (authModalTab === 'signup') {
         if (!name.trim() || !email.trim()) {
           setErrorMsg('Please enter both your name and email address.');
-          setIsLoading(false);
           return;
         }
         await signup({ name, email, role });
@@ -48,7 +49,6 @@ export default function AuthModal({ onToast }) {
       } else {
         if (!email.trim()) {
           setErrorMsg('Please enter your email.');
-          setIsLoading(false);
           return;
         }
         const res = await login(email, password);
@@ -57,7 +57,7 @@ export default function AuthModal({ onToast }) {
           closeAuthModal();
         }
       }
-    } catch (err) {
+    } catch {
       setErrorMsg('Authentication failed. Please try again.');
     } finally {
       setIsLoading(false);
@@ -66,421 +66,251 @@ export default function AuthModal({ onToast }) {
 
   const handleSelectDemo = (userId) => {
     loginAs(userId);
-    const selected = demoUsers.find((u) => u.id === userId);
+    const selected = demoUsers.find((demo) => demo.id === userId);
     if (onToast && selected) {
       onToast(`Switched account to ${selected.name} (${selected.role}) ✨`);
     }
     closeAuthModal();
   };
 
+  const isSwitching = authModalTab === 'switch';
+  const isSigningUp = authModalTab === 'signup';
+
   return (
-    <div
-      className="modal-backdrop"
-      onClick={closeAuthModal}
-      style={{
-        position: 'fixed',
-        inset: 0,
-        backgroundColor: 'rgba(5, 7, 15, 0.75)',
-        backdropFilter: 'blur(8px)',
-        WebkitBackdropFilter: 'blur(8px)',
-        zIndex: 9999,
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        padding: '1rem',
-        animation: 'fadeIn 0.2s ease-out'
-      }}
-    >
-      <div
-        className="glass-card auth-modal-container"
+    <div className="auth-backdrop" onClick={closeAuthModal}>
+      <section
+        className="auth-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="auth-title"
         onClick={(e) => e.stopPropagation()}
-        style={{
-          width: '100%',
-          maxWidth: '520px',
-          maxHeight: '90vh',
-          overflowY: 'auto',
-          borderRadius: 'var(--radius-xl)',
-          border: '1px solid rgba(255, 255, 255, 0.12)',
-          boxShadow: '0 25px 60px -15px rgba(0, 0, 0, 0.8), 0 0 40px rgba(99, 102, 241, 0.15)',
-          background: 'linear-gradient(165deg, rgba(26, 31, 56, 0.95) 0%, rgba(13, 17, 33, 0.98) 100%)',
-          padding: '2rem',
-          position: 'relative'
-        }}
       >
-        {/* Close Button */}
-        <button
-          onClick={closeAuthModal}
-          id="close-auth-modal"
-          style={{
-            position: 'absolute',
-            top: '1.25rem',
-            right: '1.25rem',
-            background: 'rgba(255, 255, 255, 0.05)',
-            border: '1px solid rgba(255, 255, 255, 0.1)',
-            color: 'var(--text-secondary)',
-            width: '32px',
-            height: '32px',
-            borderRadius: '50%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            cursor: 'pointer',
-            transition: 'all 0.2s'
-          }}
-          title="Close modal"
-        >
-          ✕
-        </button>
-
-        {/* Modal Brand Header */}
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <div
-            style={{
-              width: '48px',
-              height: '48px',
-              margin: '0 auto 0.75rem',
-              borderRadius: 'var(--radius-md)',
-              background: 'var(--accent-gradient)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              color: 'white',
-              boxShadow: '0 6px 20px rgba(99, 102, 241, 0.4)'
-            }}
-          >
-            <SparklesIcon size={24} />
-          </div>
-          <h2 style={{ fontSize: '1.35rem', fontWeight: 700, color: 'white', marginBottom: '0.25rem' }}>
-            {authModalTab === 'switch'
-              ? 'Choose Workspace Account'
-              : authModalTab === 'signup'
-              ? 'Create Your VoiceNote Account'
-              : 'Sign In to VoiceNote2Task'}
-          </h2>
-          <p style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
-            Instant client-side task structuring & cross-device persistence
-          </p>
-        </div>
-
-        {/* Tab Switcher */}
-        <div
-          style={{
-            display: 'flex',
-            background: 'rgba(0, 0, 0, 0.3)',
-            padding: '4px',
-            borderRadius: 'var(--radius-md)',
-            border: '1px solid rgba(255, 255, 255, 0.06)',
-            marginBottom: '1.5rem'
-          }}
-        >
-          <button
-            type="button"
-            className={`btn btn-sm ${authModalTab === 'signin' ? 'btn-primary' : ''}`}
-            onClick={() => setAuthModalTab('signin')}
-            style={{
-              flex: 1,
-              borderRadius: 'var(--radius-sm)',
-              background: authModalTab === 'signin' ? 'var(--accent-primary)' : 'transparent',
-              border: 'none',
-              color: authModalTab === 'signin' ? 'white' : 'var(--text-secondary)',
-              fontWeight: 600,
-              fontSize: '0.85rem'
-            }}
-          >
-            Sign In
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${authModalTab === 'signup' ? 'btn-primary' : ''}`}
-            onClick={() => setAuthModalTab('signup')}
-            style={{
-              flex: 1,
-              borderRadius: 'var(--radius-sm)',
-              background: authModalTab === 'signup' ? 'var(--accent-primary)' : 'transparent',
-              border: 'none',
-              color: authModalTab === 'signup' ? 'white' : 'var(--text-secondary)',
-              fontWeight: 600,
-              fontSize: '0.85rem'
-            }}
-          >
-            Sign Up
-          </button>
-          <button
-            type="button"
-            className={`btn btn-sm ${authModalTab === 'switch' ? 'btn-primary' : ''}`}
-            onClick={() => setAuthModalTab('switch')}
-            style={{
-              flex: 1,
-              borderRadius: 'var(--radius-sm)',
-              background: authModalTab === 'switch' ? 'var(--accent-primary)' : 'transparent',
-              border: 'none',
-              color: authModalTab === 'switch' ? 'white' : 'var(--text-secondary)',
-              fontWeight: 600,
-              fontSize: '0.85rem'
-            }}
-          >
-            Demo Profiles
-          </button>
-        </div>
-
-        {/* 1-Click Demo Profiles Selection */}
-        <div style={{ marginBottom: '1.25rem' }}>
-          <div
-            style={{
-              fontSize: '0.75rem',
-              textTransform: 'uppercase',
-              letterSpacing: '0.06em',
-              color: 'var(--text-dim)',
-              marginBottom: '0.6rem',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'space-between'
-            }}
-          >
-            <span>⚡ 1-Click Instant Demo Login:</span>
-            <span style={{ color: 'var(--accent-secondary)', fontSize: '0.7rem' }}>No password required</span>
+        <aside className="auth-story" aria-label="About VoiceNote2Task">
+          <div className="auth-story-brand">
+            <span className="auth-brand-icon"><SparklesIcon size={20} /></span>
+            <span>VoiceNote<span>2</span>Task</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0.75rem' }}>
-            {demoUsers.map((demo) => {
-              const isCurrent = user?.id === demo.id;
-              return (
-                <div
+          <div className="auth-story-copy">
+            <span className="auth-eyebrow"><span /> YOUR THOUGHTS, IN ORDER</span>
+            <h2>Make space for your next big idea.</h2>
+            <p>Turn a messy brain dump into a clear, actionable plan in seconds.</p>
+          </div>
+
+          <div className="auth-preview" aria-hidden="true">
+            <div className="auth-preview-top">
+              <span className="auth-preview-dot" />
+              <span className="auth-preview-dot" />
+              <span className="auth-preview-dot" />
+              <span className="auth-preview-label">NOTE → PLAN</span>
+            </div>
+            <div className="auth-preview-note">
+              <span className="auth-preview-mic"><span /></span>
+              <div>
+                <span className="auth-preview-caption">YOUR VOICE NOTE</span>
+                <p>“Send the proposal, then book time with the team…”</p>
+              </div>
+            </div>
+            <div className="auth-preview-divider"><SparklesIcon size={14} /><span>made actionable</span></div>
+            <div className="auth-preview-task"><span className="auth-preview-check"><CheckIcon size={11} /></span><span>Send project proposal</span><b>TODAY</b></div>
+            <div className="auth-preview-task"><span className="auth-preview-check"><CheckIcon size={11} /></span><span>Schedule team sync</span><b>1:1</b></div>
+          </div>
+
+          <div className="auth-story-foot">
+            <ShieldCheckIcon size={16} />
+            <span>Private by design. Your notes stay on this device.</span>
+          </div>
+        </aside>
+
+        <div className="auth-form-panel">
+          <button
+            type="button"
+            className="auth-close"
+            onClick={closeAuthModal}
+            id="close-auth-modal"
+            aria-label="Close sign in dialog"
+          >
+            <span aria-hidden="true">×</span>
+          </button>
+
+          <div className="auth-heading">
+            <span className="auth-mobile-brand"><SparklesIcon size={18} /></span>
+            <span className="auth-kicker">{isSwitching ? 'PICK UP WHERE YOU LEFT OFF' : 'WELCOME TO YOUR WORKSPACE'}</span>
+            <h1 id="auth-title">
+              {isSwitching ? 'Choose a profile' : isSigningUp ? 'Create your account' : 'Welcome back'}
+            </h1>
+            <p>
+              {isSwitching
+                ? 'Jump into a ready-made demo workspace.'
+                : isSigningUp
+                ? 'A little setup, then your thoughts are in motion.'
+                : 'Sign in to keep your ideas moving forward.'}
+            </p>
+          </div>
+
+          <div className="auth-tabs" role="tablist" aria-label="Account options">
+            <button
+              type="button"
+              role="tab"
+              aria-selected={authModalTab === 'signin'}
+              className={authModalTab === 'signin' ? 'is-active' : ''}
+              onClick={() => { setErrorMsg(''); setAuthModalTab('signin'); }}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={authModalTab === 'signup'}
+              className={authModalTab === 'signup' ? 'is-active' : ''}
+              onClick={() => { setErrorMsg(''); setAuthModalTab('signup'); }}
+            >
+              Create account
+            </button>
+            <button
+              type="button"
+              role="tab"
+              aria-selected={isSwitching}
+              className={isSwitching ? 'is-active' : ''}
+              onClick={() => { setErrorMsg(''); setAuthModalTab('switch'); }}
+            >
+              Demo profiles
+            </button>
+          </div>
+
+          {errorMsg && <div className="auth-error" role="alert">{errorMsg}</div>}
+
+          {isSwitching ? (
+            <div className="auth-demo-list">
+              <p className="auth-section-label">CHOOSE A WORKSPACE</p>
+              {demoUsers.map((demo) => (
+                <button
+                  type="button"
                   key={demo.id}
+                  className={`auth-demo-card ${user?.id === demo.id ? 'is-current' : ''}`}
                   onClick={() => handleSelectDemo(demo.id)}
                   id={`demo-user-btn-${demo.id}`}
-                  style={{
-                    padding: '0.75rem',
-                    borderRadius: 'var(--radius-md)',
-                    border: isCurrent
-                      ? '1.5px solid var(--accent-primary)'
-                      : '1px solid rgba(255, 255, 255, 0.08)',
-                    background: isCurrent
-                      ? 'rgba(99, 102, 241, 0.15)'
-                      : 'rgba(255, 255, 255, 0.03)',
-                    cursor: 'pointer',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '0.75rem',
-                    transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
-                    position: 'relative'
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.borderColor = 'var(--accent-primary)';
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.borderColor = isCurrent
-                      ? 'var(--accent-primary)'
-                      : 'rgba(255, 255, 255, 0.08)';
-                    e.currentTarget.style.transform = 'none';
-                  }}
                 >
-                  <img
-                    src={demo.avatar}
-                    alt={demo.name}
-                    style={{
-                      width: '40px',
-                      height: '40px',
-                      borderRadius: '50%',
-                      objectFit: 'cover',
-                      border: '1.5px solid rgba(255, 255, 255, 0.2)'
-                    }}
-                  />
-                  <div style={{ minWidth: 0, flex: 1 }}>
-                    <div
-                      style={{
-                        fontSize: '0.85rem',
-                        fontWeight: 600,
-                        color: 'white',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      {demo.name}
-                    </div>
-                    <div
-                      style={{
-                        fontSize: '0.7rem',
-                        color: 'var(--text-muted)',
-                        whiteSpace: 'nowrap',
-                        overflow: 'hidden',
-                        textOverflow: 'ellipsis'
-                      }}
-                    >
-                      {demo.role}
-                    </div>
-                  </div>
-                  {isCurrent && (
-                    <span
-                      style={{
-                        position: 'absolute',
-                        top: '6px',
-                        right: '6px',
-                        width: '8px',
-                        height: '8px',
-                        borderRadius: '50%',
-                        background: '#10b981',
-                        boxShadow: '0 0 6px #10b981'
-                      }}
-                      title="Currently Active"
-                    />
-                  )}
-                </div>
-              );
-            })}
-          </div>
-        </div>
-
-        {authModalTab !== 'switch' && (
-          <>
-            <div
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                margin: '1.25rem 0',
-                gap: '0.75rem',
-                color: 'var(--text-dim)',
-                fontSize: '0.75rem'
-              }}
-            >
-              <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
-              <span>OR ENTER CREDENTIALS</span>
-              <div style={{ flex: 1, height: '1px', background: 'rgba(255, 255, 255, 0.08)' }} />
+                  <img src={demo.avatar} alt="" />
+                  <span className="auth-demo-info">
+                    <strong>{demo.name}</strong>
+                    <span>{demo.role} · {demo.plan}</span>
+                  </span>
+                  <span className="auth-demo-arrow" aria-hidden="true">→</span>
+                  {user?.id === demo.id && <span className="auth-current-badge">CURRENT</span>}
+                </button>
+              ))}
             </div>
-
-            {errorMsg && (
-              <div
-                style={{
-                  background: 'rgba(239, 68, 68, 0.15)',
-                  border: '1px solid rgba(239, 68, 68, 0.3)',
-                  color: '#fca5a5',
-                  padding: '0.65rem 0.85rem',
-                  borderRadius: 'var(--radius-md)',
-                  fontSize: '0.8rem',
-                  marginBottom: '1rem'
-                }}
-              >
-                {errorMsg}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '0.85rem' }}>
-              {authModalTab === 'signup' && (
-                <>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                      Full Name
-                    </label>
-                    <input
-                      type="text"
-                      className="search-input"
-                      placeholder="e.g. Jordan Hayes"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      required
-                    />
+          ) : (
+            <>
+              {!isSigningUp && (
+                <div className="auth-demo-shortcut">
+                  <div className="auth-demo-shortcut-heading">
+                    <span className="auth-section-label">SKIP THE FORM</span>
+                    <span>One-click demo</span>
                   </div>
-                  <div>
-                    <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                      Role or Title
-                    </label>
-                    <input
-                      type="text"
-                      className="search-input"
-                      placeholder="e.g. Engineering Lead, Founder"
-                      value={role}
-                      onChange={(e) => setRole(e.target.value)}
-                    />
+                  <div className="auth-demo-shortcut-list">
+                    {demoUsers.map((demo) => (
+                      <button
+                        type="button"
+                        key={demo.id}
+                        className="auth-demo-chip"
+                        onClick={() => handleSelectDemo(demo.id)}
+                        id={`demo-user-btn-${demo.id}`}
+                        title={`Continue as ${demo.name}`}
+                      >
+                        <img src={demo.avatar} alt="" />
+                        <span>{demo.name.split(' ')[0]}</span>
+                        <span className="auth-demo-chip-arrow" aria-hidden="true">↗</span>
+                      </button>
+                    ))}
                   </div>
-                </>
+                </div>
               )}
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                  Email Address
-                </label>
-                <input
-                  type="email"
-                  className="search-input"
-                  placeholder="name@company.com"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
+              <div className="auth-form-divider"><span>{isSigningUp ? 'OR CREATE WITH EMAIL' : 'OR CONTINUE WITH EMAIL'}</span></div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '0.35rem' }}>
-                  Password
-                </label>
-                <input
-                  type="password"
-                  className="search-input"
-                  placeholder="••••••••••••"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-              </div>
+              {!isSigningUp && (
+                <div className="auth-demo-notice">
+                  <SparklesIcon size={15} />
+                  <p><strong>Demo mode</strong> — use any email address. No real password is checked.</p>
+                </div>
+              )}
 
-              <button
-                type="submit"
-                id="auth-submit-btn"
-                className="btn btn-primary"
-                disabled={isLoading}
-                style={{
-                  marginTop: '0.5rem',
-                  width: '100%',
-                  justifyContent: 'center',
-                  padding: '0.75rem',
-                  fontSize: '0.95rem'
-                }}
-              >
-                {isLoading ? (
-                  <span>Authenticating...</span>
-                ) : authModalTab === 'signup' ? (
+              <form onSubmit={handleSubmit} className="auth-form">
+                {isSigningUp && (
                   <>
-                    <UserIcon size={16} />
-                    <span>Create Free Account</span>
-                  </>
-                ) : (
-                  <>
-                    <LogInIcon size={16} />
-                    <span>Sign In</span>
+                    <div className="auth-field">
+                      <label htmlFor="auth-name">Your name</label>
+                      <input
+                        id="auth-name"
+                        type="text"
+                        autoComplete="name"
+                        placeholder="e.g. Jordan Hayes"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
+                        required
+                      />
+                    </div>
+                    <div className="auth-field">
+                      <label htmlFor="auth-role">Role <span>(optional)</span></label>
+                      <input
+                        id="auth-role"
+                        type="text"
+                        placeholder="e.g. Product designer"
+                        value={role}
+                        onChange={(e) => setRole(e.target.value)}
+                      />
+                    </div>
                   </>
                 )}
-              </button>
-            </form>
-          </>
-        )}
 
-        {/* Security & Feature Badges */}
-        <div
-          style={{
-            marginTop: '1.5rem',
-            paddingTop: '1rem',
-            borderTop: '1px solid rgba(255, 255, 255, 0.08)',
-            display: 'flex',
-            justifyContent: 'space-around',
-            fontSize: '0.75rem',
-            color: 'var(--text-dim)'
-          }}
-        >
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <ShieldCheckIcon size={14} style={{ color: '#10b981' }} />
-            <span>100% Client-side</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <CheckIcon size={14} style={{ color: '#6366f1' }} />
-            <span>Instant Sync</span>
-          </div>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.35rem' }}>
-            <SparklesIcon size={14} style={{ color: '#ec4899' }} />
-            <span>Zero Data Leak</span>
+                <div className="auth-field">
+                  <label htmlFor="auth-email">Email address</label>
+                  <input
+                    id="auth-email"
+                    type="email"
+                    autoComplete="email"
+                    placeholder="you@example.com"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                  />
+                </div>
+
+                {!isSigningUp && (
+                  <div className="auth-field">
+                    <label htmlFor="auth-password">Password <span>(optional in demo)</span></label>
+                    <input
+                      id="auth-password"
+                      type="password"
+                      autoComplete="current-password"
+                      placeholder="Enter anything, or leave blank"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                    />
+                  </div>
+                )}
+
+                <button type="submit" id="auth-submit-btn" className="auth-submit" disabled={isLoading}>
+                  {isLoading ? (
+                    <><span className="auth-spinner" />{isSigningUp ? 'Creating your space…' : 'Signing you in…'}</>
+                  ) : isSigningUp ? (
+                    <><UserIcon size={17} />Create free account</>
+                  ) : (
+                    <><LogInIcon size={17} />Continue to workspace</>
+                  )}
+                </button>
+              </form>
+            </>
+          )}
+
+          <div className="auth-trust-row">
+            <span><ShieldCheckIcon size={14} /> Client-side demo</span>
+            <span><CheckIcon size={14} /> No real account needed</span>
           </div>
         </div>
-      </div>
+      </section>
     </div>
   );
 }
