@@ -13,6 +13,7 @@ const FILLER_PREFIX_REGEX = /^(?:uh+|um+|er+|ah+|like|you know|basically|honestl
 const ACTION_PREFIXES = [
   // Obligation / Intent
   { regex: /^(?:(?:hey\s+(?:team|everyone|guys)\s*,?\s*)?(?:so\s+)?(?:i\s+was\s+just\s+[^,.]*,\s*)?(?:and\s+)?(?:i\s+realized\s+)?(?:that\s+)?i\s+(?:really\s+)?(?:need|have|got|gotta)\s+to)\s+/i, replacement: '' },
+  { regex: /^(?:(?:i|we)\s+)?(?:really\s+)?(?:need|have|got|gotta)\s+to\s+/i, replacement: '' },
   { regex: /^(?:(?:we\s+(?:really\s+)?(?:need|have|got|gotta)\s+to))\s+/i, replacement: '' },
   { regex: /^(?:(?:i\s+(?:really\s+)?(?:need|have|got|gotta)\s+to))\s+/i, replacement: '' },
   { regex: /^(?:(?:i|we)\s+must)\s+/i, replacement: '' },
@@ -587,15 +588,22 @@ export function splitIntoCandidateThoughts(rawText) {
     .sort((a, b) => b.length - a.length)
     .map(escapeRegExp)
     .join('|');
-  const actionStartPattern = new RegExp(`(?:${actionVerbPattern})\\b`, 'i');
+  const obligationPattern = '(?:(?:(?:i|we)\\s+)?(?:really\\s+)?(?:need|have|got|gotta)\\s+to\\s+|(?:(?:i|we)\\s+)?(?:must|should)\\s+)';
+  const actionStartPattern = new RegExp(`(?:${obligationPattern})?(?:${actionVerbPattern})\\b`, 'i');
+  const splitAtAction = (match, offset, source) => {
+    const previousSplit = source.lastIndexOf(SPLIT_TOKEN, offset - 1);
+    const segmentStart = previousSplit === -1 ? 0 : previousSplit + SPLIT_TOKEN.length;
+    const sharedDueDate = extractDueDate(source.slice(segmentStart, offset));
+    return `${SPLIT_TOKEN}${sharedDueDate ? ` ${sharedDueDate.rawMatch}` : ''} `;
+  };
 
 processed = processed.replace(
   new RegExp(`\\s+\\band\\s+(?=${actionStartPattern.source})`, 'gi'),
-  `${SPLIT_TOKEN} `
+  splitAtAction
 );
   processed = processed.replace(
     new RegExp(`,\\s*(?=${actionStartPattern.source})`, 'gi'),
-    `${SPLIT_TOKEN} `
+    splitAtAction
   );
   // Split on spoken transitions when they introduce a new action item.
   const taskStartPattern = /(?:^|\s)(?:and|also|plus|then|oh\s+and|oh\s+yeah\s+and|another\s+thing\s+is|next\s+thing\s+is|on\s+top\s+of\s+that|and\s+don\'t\s+forget\s+to|and\s+remember\s+to|and\s+make\s+sure\s+to|also\s+don\'t\s+forget\s+to|also\s+remember\s+to|also\s+make\s+sure\s+to|wait\s*,?)\s+(?=(?:urgent|critical|high\s+priority|i\s+(?:really\s+)?(?:need|have|got|gotta|must|should)|we\s+(?:really\s+)?(?:need|have|got|gotta|must|should)|you\s+(?:can|could|would|should)|please\s+|don\'t\s+forget\s+to|remember\s+to|make\s+sure\s+to|call\b|email\b|text\b|message\b|ping\b|reply\b|follow\s+up\b|buy\b|purchase\b|order\b|book\b|schedule\b|fix\b|repair\b|patch\b|resolve\b|solve\b|tackle\b|review\b|check\b|verify\b|update\b|send\b|write\b|draft\b|create\b|build\b|submit\b|pay\b|wire\b|transfer\b|read\b|research\b|investigate\b|clean\b|pick\s+up\b|grab\b|return\b|renew\b|cancel\b|reschedule\b|talk\b|chat\b|meet\b|visit\b))\b/gi;
@@ -646,6 +654,12 @@ export function cleanTaskTitle(sentence, dueDateMatch) {
   if (dueDateMatch?.rawMatch) {
     const dateRegex = new RegExp(`\\b(?:by|on|at|before|for|in)?\\s*${escapeRegExp(dueDateMatch.rawMatch)}\\b`, 'gi');
     cleaned = cleaned.replace(dateRegex, '').trim();
+  }
+
+  for (const prefix of ACTION_PREFIXES) {
+    if (prefix.regex.test(cleaned)) {
+      cleaned = cleaned.replace(prefix.regex, prefix.replacement).trim();
+    }
   }
 
   cleaned = cleaned

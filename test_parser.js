@@ -28,6 +28,17 @@ assert.deepEqual(
     .tasks.map((task) => task.title),
   ['Call the dentist', 'Pick up groceries', 'Email Sam about the project']
 );
+const obligationResult = parseVoiceNote(
+  'Tomorrow I have to work on my project and need to give presentation to teacher.'
+);
+assert.deepEqual(
+  obligationResult.tasks.map((task) => task.title),
+  ['Work on my project', 'Give presentation to teacher']
+);
+assert.deepEqual(
+  obligationResult.tasks.map((task) => task.dueDateRelative),
+  ['Tomorrow', 'Tomorrow']
+);
 assert.deepEqual(
   parseVoiceNote('I need to do two loads of laundry tonight and take out the recycling.')
     .tasks.map((task) => task.title),
