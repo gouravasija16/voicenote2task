@@ -578,7 +578,14 @@ export function splitIntoCandidateThoughts(rawText) {
   // Split on strong sentence punctuation and line breaks.
   processed = processed.replace(/([.?!;]+)(\s+)/g, `$1${SPLIT_TOKEN}`);
   processed = processed.replace(/\n+/g, SPLIT_TOKEN);
-
+// Split connected actions into separate tasks.
+// Example:
+// "work on project and complete assignment and revise Java"
+// becomes 3 separate task candidates.
+processed = processed.replace(
+  /\s+\band\s+(?=(?:complete|finish|work|study|revise|review|prepare|create|build|write|read|submit|fix|check|update|call|email|send|buy|order|schedule|book|plan|clean|research|practice|learn|deploy|test)\b)/gi,
+  `${SPLIT_TOKEN} `
+);
   // Split on spoken transitions when they introduce a new action item.
   const taskStartPattern = /(?:^|\s)(?:and|also|plus|then|oh\s+and|oh\s+yeah\s+and|another\s+thing\s+is|next\s+thing\s+is|on\s+top\s+of\s+that|and\s+don\'t\s+forget\s+to|and\s+remember\s+to|and\s+make\s+sure\s+to|also\s+don\'t\s+forget\s+to|also\s+remember\s+to|also\s+make\s+sure\s+to|wait\s*,?)\s+(?=(?:urgent|critical|high\s+priority|i\s+(?:really\s+)?(?:need|have|got|gotta|must|should)|we\s+(?:really\s+)?(?:need|have|got|gotta|must|should)|you\s+(?:can|could|would|should)|please\s+|don\'t\s+forget\s+to|remember\s+to|make\s+sure\s+to|call\b|email\b|text\b|message\b|ping\b|reply\b|follow\s+up\b|buy\b|purchase\b|order\b|book\b|schedule\b|fix\b|repair\b|patch\b|resolve\b|solve\b|tackle\b|review\b|check\b|verify\b|update\b|send\b|write\b|draft\b|create\b|build\b|submit\b|pay\b|wire\b|transfer\b|read\b|research\b|investigate\b|clean\b|pick\s+up\b|grab\b|return\b|renew\b|cancel\b|reschedule\b|talk\b|chat\b|meet\b|visit\b))\b/gi;
   processed = processed.replace(taskStartPattern, `${SPLIT_TOKEN} `);
@@ -704,11 +711,11 @@ export function isActionableTask(sentence) {
     }
   }
 
-  if (extractDueDate(sentence) !== null && lower.split(/\s+/).length >= 3) return true;
+  if (extractDueDate(sentence) !== null && lower.split(/\s+/).length >= 3) {
+  return true;
+}
 
-  return false;if (extractDueDate(sentence) !== null && lower.split(/\s+/).length >= 3) return true;
-
-  return false;
+return false;
 }
 
 /**

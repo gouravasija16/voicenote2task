@@ -36,7 +36,7 @@ export default function Home({ onToast }) {
   const [showHistory,setShowHistory]=useState(false)
   const [isParsing, setIsParsing] = useState(false);
   const recognitionRef = useRef(null);
-  const lastSpeechChunkRef = useRef('');
+  
 
   // If redirected here from a protected route, auto-open auth modal
   useEffect(() => {
@@ -61,35 +61,68 @@ export default function Home({ onToast }) {
       recognition.interimResults = true;
       recognition.lang = 'en-US';
 
+     recognition.onresult = (event) => {
+  let finalTranscript = '';
+
+  for (let i = event.resultIndex; i < event.results.length; i++) {
+    const result = event.results[i];
+
+    // Only save final speech.
+    // Interim speech changes while you are talking and causes repetition.
+    if (!result.isFinal) continue;
+
+    const transcript = result[0]?.transcript?.trim();
+
+    if (transcript) {
+      finalTranscript += transcript + ' ';
+    }
+  }
+
+  const normalized = finalTranscript.replace(/\s+/g, ' ').trim();
+
+  if (!normalized) return;
+
+  setInputText((prev) => {
+    const prevTrimmed = prev.trim();
+
+    if (!prevTrimmed) {
+      return normalized;
+    }
+
+    return `${prevTrimmed} ${normalized}`;
+     });
+  };
       recognition.onresult = (event) => {
-        let transcript = '';
-        for (let i = event.resultIndex; i < event.results.length; i++) {
-          const resultText = event.results[i][0]?.transcript?.trim();
-          if (!resultText) continue;
-          transcript += (transcript ? ' ' : '') + resultText;
-        }
+  let finalTranscript = '';
 
-        if (!transcript) return;
+  for (let i = event.resultIndex; i < event.results.length; i++) {
+    const result = event.results[i];
 
-        const normalized = transcript.replace(/\s+/g, ' ').trim();
-        if (!normalized || normalized === lastSpeechChunkRef.current) return;
+    // Only save final speech.
+    // Interim speech changes while you are talking and causes repetition.
+    if (!result.isFinal) continue;
 
-        lastSpeechChunkRef.current = normalized;
-        setInputText((prev) => {
-          const prevTrimmed = prev.trim();
-          if (!prevTrimmed) return normalized;
-          if (prevTrimmed.endsWith(normalized)) return prev;
-          const separator = prev && !prev.endsWith(' ') ? ' ' : '';
-          return `${prev}${separator}${normalized}`;
-        });
-      };
+    const transcript = result[0]?.transcript?.trim();
 
-      recognition.onerror = (event) => {
-        console.warn('Speech recognition error:', event.error);
-        setIsRecording(false);
-        lastSpeechChunkRef.current = '';
-        if (onToast) onToast(`Microphone notice: ${event.error}`);
-      };
+    if (transcript) {
+      finalTranscript += transcript + ' ';
+    }
+  }
+
+  const normalized = finalTranscript.replace(/\s+/g, ' ').trim();
+
+  if (!normalized) return;
+
+  setInputText((prev) => {
+    const prevTrimmed = prev.trim();
+
+    if (!prevTrimmed) {
+      return normalized;
+    }
+
+    return `${prevTrimmed} ${normalized}`;
+      });
+  };;
 
       recognition.onend = () => {
         setIsRecording(false);
