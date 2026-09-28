@@ -16,6 +16,7 @@ import {
 import { parseVoiceNote } from '../utils/parser';
 import { SAMPLE_VOICE_NOTES } from '../utils/samples';
 import {
+  getStoredTasks,
   getStoredRawText,
   saveStoredRawText,
   saveStoredTasks,
@@ -212,9 +213,21 @@ export default function Home({ onToast }) {
     // Run pure client-side pattern matching NLP
     const result = parseVoiceNote(inputText);
 
+    const existingTasks = getStoredTasks();
+    const existingTaskSentences = new Set(
+      existingTasks.map((task) => (task.originalSentence || task.title).trim().toLowerCase())
+    );
+    const tasksToAdd = result.tasks.filter((task) => {
+      const sentence = (task.originalSentence || task.title).trim().toLowerCase();
+      if (existingTaskSentences.has(sentence)) return false;
+      existingTaskSentences.add(sentence);
+      return true;
+    });
+    const allTasks = [...existingTasks, ...tasksToAdd];
+
     // Save to localStorage
     saveStoredRawText(inputText);
-    saveStoredTasks(result.tasks);
+    saveStoredTasks(allTasks);
     saveToHistory(inputText, result.tasks);
 
     setIsParsing(false);
@@ -222,7 +235,7 @@ export default function Home({ onToast }) {
     // Navigate to /tasks with results in state
     navigate('/tasks', {
       state: {
-        tasks: result.tasks,
+        tasks: allTasks,
         rawText: inputText,
         stats: result.stats
       }

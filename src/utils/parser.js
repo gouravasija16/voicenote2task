@@ -48,7 +48,7 @@ const ACTION_PREFIXES = [
 const ACTION_VERBS = [
   'call', 'phone', 'ring', 'email', 'text', 'message', 'ping', 'slack', 'dm',
   'contact', 'reach out to', 'reply to', 'respond to', 'follow up with', 'sync with',
-  'buy', 'purchase', 'order', 'pick up', 'grab', 'get', 'shop for', 'acquire',
+  'buy', 'purchase', 'order', 'pick up', 'take out', 'grab', 'get', 'shop for', 'acquire',
   'fix', 'debug', 'repair', 'patch', 'resolve', 'solve', 'tackle',
   'deploy', 'ship', 'release', 'publish', 'push', 'merge',
   'schedule', 'book', 'set up', 'arrange', 'plan', 'reserve', 'organize',
@@ -58,7 +58,8 @@ const ACTION_VERBS = [
   'pay', 'wire', 'transfer', 'invoice', 'settle', 'reimburse',
   'review', 'check', 'inspect', 'audit', 'test', 'validate', 'verify',
   'update', 'modify', 'revise', 'edit', 'refactor',
-  'finish', 'complete', 'finalize', 'wrap up', 'close',
+  'finish', 'complete', 'finalize', 'wrap up', 'close', 'work', 'study', 'practice', 'learn',
+  'give', 'present',
   'clean', 'tidy', 'wash', 'vacuum', 'declutter', 'sanitize',
   'print', 'scan', 'sign', 'read', 'research', 'investigate',
   'cancel', 'reschedule', 'renew', 'return', 'drop off'
@@ -582,10 +583,20 @@ export function splitIntoCandidateThoughts(rawText) {
 // Example:
 // "work on project and complete assignment and revise Java"
 // becomes 3 separate task candidates.
+  const actionVerbPattern = [...ACTION_VERBS]
+    .sort((a, b) => b.length - a.length)
+    .map(escapeRegExp)
+    .join('|');
+  const actionStartPattern = new RegExp(`(?:${actionVerbPattern})\\b`, 'i');
+
 processed = processed.replace(
-  /\s+\band\s+(?=(?:complete|finish|work|study|revise|review|prepare|create|build|write|read|submit|fix|check|update|call|email|send|buy|order|schedule|book|plan|clean|research|practice|learn|deploy|test)\b)/gi,
+  new RegExp(`\\s+\\band\\s+(?=${actionStartPattern.source})`, 'gi'),
   `${SPLIT_TOKEN} `
 );
+  processed = processed.replace(
+    new RegExp(`,\\s*(?=${actionStartPattern.source})`, 'gi'),
+    `${SPLIT_TOKEN} `
+  );
   // Split on spoken transitions when they introduce a new action item.
   const taskStartPattern = /(?:^|\s)(?:and|also|plus|then|oh\s+and|oh\s+yeah\s+and|another\s+thing\s+is|next\s+thing\s+is|on\s+top\s+of\s+that|and\s+don\'t\s+forget\s+to|and\s+remember\s+to|and\s+make\s+sure\s+to|also\s+don\'t\s+forget\s+to|also\s+remember\s+to|also\s+make\s+sure\s+to|wait\s*,?)\s+(?=(?:urgent|critical|high\s+priority|i\s+(?:really\s+)?(?:need|have|got|gotta|must|should)|we\s+(?:really\s+)?(?:need|have|got|gotta|must|should)|you\s+(?:can|could|would|should)|please\s+|don\'t\s+forget\s+to|remember\s+to|make\s+sure\s+to|call\b|email\b|text\b|message\b|ping\b|reply\b|follow\s+up\b|buy\b|purchase\b|order\b|book\b|schedule\b|fix\b|repair\b|patch\b|resolve\b|solve\b|tackle\b|review\b|check\b|verify\b|update\b|send\b|write\b|draft\b|create\b|build\b|submit\b|pay\b|wire\b|transfer\b|read\b|research\b|investigate\b|clean\b|pick\s+up\b|grab\b|return\b|renew\b|cancel\b|reschedule\b|talk\b|chat\b|meet\b|visit\b))\b/gi;
   processed = processed.replace(taskStartPattern, `${SPLIT_TOKEN} `);
