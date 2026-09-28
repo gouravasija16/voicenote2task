@@ -10,8 +10,6 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@rolldown/binding-win32-x64-msvc": "^1.2.11",
-    "lightningcss-win32-x64-msvc": "^1.33.0",
     "react": "^19.2.8",
     "react-dom": "^19.2.8",
     "react-router-dom": "^6.30.6",
