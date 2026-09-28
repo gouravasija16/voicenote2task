@@ -24,6 +24,11 @@ assert.deepEqual(
   ['Call the dentist', 'Pick up groceries', 'Email Sam about the project', 'Book a haircut']
 );
 assert.deepEqual(
+  parseVoiceNote('I need to call the dentist and pick up groceries and email Sam about the project.')
+    .tasks.map((task) => task.title),
+  ['Call the dentist', 'Pick up groceries', 'Email Sam about the project']
+);
+assert.deepEqual(
   parseVoiceNote('I need to do two loads of laundry tonight and take out the recycling.')
     .tasks.map((task) => task.title),
   ['Do two loads of laundry', 'Take out the recycling']
