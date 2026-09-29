@@ -44,5 +44,21 @@ assert.deepEqual(
     .tasks.map((task) => task.title),
   ['Do two loads of laundry', 'Take out the recycling']
 );
+const mixedNoteResult = parseVoiceNote(
+  'ugh i need to call mom, and buy milk, and oh yeah submit that report by Friday,also its nice day today'
+);
+assert.deepEqual(
+  mixedNoteResult.tasks.map((task) => task.title),
+  ['Call mom', 'Buy milk', 'Submit that report']
+);
+assert.equal(mixedNoteResult.tasks[2].dueDateRelative, 'Friday');
+const conversationalNoteResult = parseVoiceNote(
+  "ugh i need to call mom, and buy milk, and yeah submit that report by Friday, also it's a nice day today i am writing this its also adding nice day as well"
+);
+assert.deepEqual(
+  conversationalNoteResult.tasks.map((task) => task.title),
+  ['Call mom', 'Buy milk', 'Submit that report']
+);
+assert.equal(conversationalNoteResult.tasks[2].dueDateRelative, 'Friday');
 
 console.log('\n--- All Tests Passed Successfully! ---');

@@ -7,7 +7,7 @@
 const META_COMMENTARY_REGEX = /^(?:okay\s*,?\s*so\s*)?(?:(?:let\s+me\s+(?:quickly\s+)?(?:jot\s+down|write\s+down|list|think\s+about|note\s+down|recap)\s+(?:what\s+(?:i|we)\s+(?:need|have)\s+to\s+(?:do|get\s+done)|my\s+tasks|things|everything))|(?:here\s+(?:is|are)\s+(?:a\s+few\s+)?things\s+(?:i|we)\s+need\s+to\s+do)|(?:quick\s+memo\s+(?:for\s+(?:the\s+week|today|tomorrow))?))\s*:?\s*/i;
 
 // Comprehensive filler word and conversational hedge patterns
-const FILLER_PREFIX_REGEX = /^(?:uh+|um+|er+|ah+|like|you know|basically|honestly|actually|so yeah|okay so|hey so|well|i mean|listen|right|just wanted to say that|i was thinking that|wait|oh yeah|oh and)\s*,?\s*/i;
+const FILLER_PREFIX_REGEX = /^(?:uh+|um+|er+|ah+|ugh|like|you know|basically|honestly|actually|so yeah|yeah|okay so|hey so|well|i mean|listen|right|just wanted to say that|i was thinking that|wait|oh yeah|oh and)\s*,?\s*/i;
 
 // Action trigger prefixes to identify task intent and strip conversational wrappers
 const ACTION_PREFIXES = [
@@ -705,7 +705,7 @@ export function isActionableTask(sentence) {
 
   // Explicit non-tasks / pleasantries / background observations
   const nonTaskPhrases = [
-    /^(?:the\s+weather\s+is|it'?s\s+such\s+a\s+nice\s+day|i\s+was\s+just\s+thinking\s+about\s+life)/i,
+    /^(?:the\s+weather\s+is|(?:(?:and|also|yeah|oh)\s*,?\s+)*it'?s\s+(?:(?:such\s+)?a\s+)?nice\s+day|i\s+was\s+just\s+thinking\s+about\s+life)/i,
     /^(?:i\s+had\s+lunch|we\s+ate|i\s+woke\s+up)/i,
     /^(?:anyway\s*,?\s*that'?s\s+all|that'?s\s+it\s+for\s+now|talk\s+to\s+you\s+later)/i,
     /^(?:bye|goodbye|have\s+a\s+good\s+day|cheers)\b/i
